@@ -20,7 +20,7 @@ option(ALLOW_MANUAL_ROLLBACK "Set to ON to build with support of manual rollback
 option(BUILD_AKLITE_OFFLINE "Set to ON to build cli command for an offline update" OFF)
 option(BUILD_TUFCTL "Set to ON to build sample tuf control application" OFF)
 option(BUILD_P11 "Support for key storage in a HSM via PKCS#11" ON)
-option(USE_COMPOSEAPP_ENGINE "Set to ON to build the app engine based on the composeapp utility" ON)
+option(USE_COMPOSEAPP_ENGINE "Set to ON to build the app engine based on the composeapp utility" OFF)
 option(BUILD_WITH_CODE_COVERAGE_AKLITE "Enable gcov code coverage" OFF)
 
 # If we build the sota tools we don't need aklite (???) and vice versa
