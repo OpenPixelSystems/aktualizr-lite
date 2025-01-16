@@ -475,23 +475,36 @@ data::InstallationResult ComposeAppManager::finalizeInstall(const Uptane::Target
     }
     // "finalize" (run) Apps that were pulled and created before reboot
     for (const auto& app_pair : getApps(target)) {
+      //Here the installation of the apps should be checked, and if they are not installed, they should be
       const AppEngine::Result run_res = app_engine_->run({app_pair.first, app_pair.second});
-      if (!run_res) {
-        const std::string err_desc{boost::str(
-            boost::format("failed to start App after booting on a new sysroot version; app: %s; uri: %s; err: %s") %
-            app_pair.first % app_pair.second % run_res.err)};
+      if(!run_res) {
+        // First we print the run_res error message
+        LOG_ERROR << "App: " << app_pair.first << ", failed to start: " << run_res.err;
+        // If this fails it is possible that some apps are missing since they are added in this new target.
+        LOG_INFO << "Downloading App because it would not start";
+        Download(Target::toTufTarget(target));  // download the missing apps
+                                                // Retry the run
+        LOG_INFO << "Retrying to start App: " << app_pair.first;
+        const AppEngine::Result rerun_res = app_engine_->run({app_pair.first, app_pair.second});
+        if (!rerun_res) {
+        // again we print the run_res error message
+        LOG_ERROR << "App: " << app_pair.first << ", failed to start at rerun: " << rerun_res.err;
+          const std::string err_desc{boost::str(
+              boost::format("failed to start App after booting on a new sysroot version; app: %s; uri: %s; err: %s") %
+              app_pair.first % app_pair.second % run_res.err)};
 
-        LOG_ERROR << err_desc;
-        // Do we need to set some flag for the uboot and trigger a system reboot in order to boot on a previous
-        // ostree version, hence a proper/full rollback happens???
-        ir.description += ", however " + err_desc;
-        ir.description += "\n# Apps running:\n" + getRunningAppsInfoForReport();
-        // this is a hack to distinguish between ostree install (rollback) and App start failures.
-        // data::ResultCode::Numeric::kInstallFailed - boot on a new ostree version failed (rollback at boot)
-        // data::ResultCode::Numeric::kCustomError - boot on a new version was successful but new App failed to start
-        return data::InstallationResult(run_res.imagePullFailure() ? data::ResultCode::Numeric::kDownloadFailed
-                                                                   : data::ResultCode::Numeric::kCustomError,
-                                        ir.description);
+          LOG_ERROR << err_desc;
+          // Do we need to set some flag for the uboot and trigger a system reboot in order to boot on a previous
+          // ostree version, hence a proper/full rollback happens???
+          ir.description += ", however " + err_desc;
+          ir.description += "\n# Apps running:\n" + getRunningAppsInfoForReport();
+          // this is a hack to distinguish between ostree install (rollback) and App start failures.
+          // data::ResultCode::Numeric::kInstallFailed - boot on a new ostree version failed (rollback at boot)
+          // data::ResultCode::Numeric::kCustomError - boot on a new version was successful but new App failed to start
+          return data::InstallationResult(run_res.imagePullFailure() ? data::ResultCode::Numeric::kDownloadFailed
+              : data::ResultCode::Numeric::kCustomError,
+              ir.description);
+        }
       }
     }
     handleRemovedApps(target);
