@@ -278,6 +278,9 @@ static int daemon_main(LiteClient& client, const bpo::variables_map& variables_m
     LOG_INFO << "Active Target: " << current.filename() << ", sha256: " << current.sha256Hash();
     LOG_INFO << "Checking for a new Target...";
 
+    client.reportNetworkInfo();
+    client.reportHwInfo();
+
     client.reportAppsState();
     if (!client.checkForUpdatesBegin()) {
       LOG_WARNING << "Unable to update latest metadata, going to sleep for " << interval
@@ -285,9 +288,6 @@ static int daemon_main(LiteClient& client, const bpo::variables_map& variables_m
       std::this_thread::sleep_for(std::chrono::seconds(interval));
       continue;  // There's no point trying to look for an update
     }
-
-    client.reportNetworkInfo();
-    client.reportHwInfo();
 
     std::string exc_msg;
     try {
