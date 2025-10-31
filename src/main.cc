@@ -280,8 +280,15 @@ static int daemon_main(LiteClient& client, const bpo::variables_map& variables_m
 
     client.reportNetworkInfo();
     client.reportHwInfo();
-
     client.reportAppsState();
+
+    if (client.config.uptane.disable_update_checking) {
+      LOG_INFO << "Update checking is disabled, going to sleep for " << interval
+	       << " seconds before starting a new update cycle";
+      std::this_thread::sleep_for(std::chrono::seconds(interval));
+      continue;
+    }
+
     if (!client.checkForUpdatesBegin()) {
       LOG_WARNING << "Unable to update latest metadata, going to sleep for " << interval
                   << " seconds before starting a new update cycle";
